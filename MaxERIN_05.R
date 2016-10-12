@@ -34,18 +34,19 @@ MaxERIN_05 <- function() {
   preYears <- length(pre.salary.nq) # Num of years in Pre-stage
   
   # Weighted return for NQ
-  wr.all.nq <- t((1 + t(adj.Asset1) %*% diag(Allocations.nq[,1])) + 
-                   (1 + t(adj.Asset2)) %*% diag(Allocations.nq[,2]) +
-                   (1 + t(adj.Asset3)) %*% diag(Allocations.nq[,3]) + 
-                   (1 + t(adj.Asset4)) %*% diag(Allocations.nq[,4]) +
-                   (1 + t(adj.Asset5)) %*% diag(Allocations.nq[,5]) + 
-                   (1 + t(adj.Asset6)) %*% diag(Allocations.nq[,6]) +
-                   (1 + t(adj.Asset7)) %*% diag(Allocations.nq[,7]) + 
-                   (1 + t(adj.Asset8)) %*% diag(Allocations.nq[,8]) +
-                   (1 + t(adj.Asset9)) %*% diag(Allocations.nq[,9]) + 
-                   (1 +t(adj.Asset10)) %*% diag(Allocations.nq[,10]))
+  wr.all.nq <- t(t(adj.Asset1) %*% diag(Allocations.nq[,1]) + 
+                   t(adj.Asset2) %*% diag(Allocations.nq[,2]) +
+                   t(adj.Asset3) %*% diag(Allocations.nq[,3]) + 
+                   t(adj.Asset4) %*% diag(Allocations.nq[,4]) +
+                   t(adj.Asset5) %*% diag(Allocations.nq[,5]) + 
+                   t(adj.Asset6) %*% diag(Allocations.nq[,6]) +
+                   t(adj.Asset7) %*% diag(Allocations.nq[,7]) + 
+                   t(adj.Asset8) %*% diag(Allocations.nq[,8]) +
+                   t(adj.Asset9) %*% diag(Allocations.nq[,9]) + 
+                   t(adj.Asset10) %*% diag(Allocations.nq[,10])) + 1
+  wr.all.nq <- as.data.frame(wr.all.nq)
   # Weighted return for Q
-  wr.all.q <- t((1 + t(adj.Asset1) %*% diag(Allocations.q[,1])) + 
+  wr.all.q <- t((1 + t(adj.Asset1)) %*% diag(Allocations.q[,1]) + 
                   (1 + t(adj.Asset2)) %*% diag(Allocations.q[,2]) +
                   (1 + t(adj.Asset3)) %*% diag(Allocations.q[,3]) + 
                   (1 + t(adj.Asset4)) %*% diag(Allocations.q[,4]) +
@@ -55,12 +56,11 @@ MaxERIN_05 <- function() {
                   (1 + t(adj.Asset8)) %*% diag(Allocations.q[,8]) +
                   (1 + t(adj.Asset9)) %*% diag(Allocations.q[,9]) + 
                   (1 +t(adj.Asset10)) %*% diag(Allocations.q[,10]))
+  wr.all.q <- as.data.frame(wr.all.q)
   # Truncate weighted return for pre-stage
-  pre.wr.nq <- wr.all.nq[1:preYears, ]
-  pre.wr.q <- wr.all.q[1:preYears, ]
+  pre.wr.nq <- (wr.all.nq[1:preYears, ] - 1) * (preYears > 0) + 1
+  pre.wr.q <- (wr.all.q[1:preYears, ] - 1) * (preYears > 0) + 1
   
-  pre.wr.nq <- as.data.frame(pre.wr.nq)
-  pre.wr.q <- as.data.frame(pre.wr.q)
   # Accumulated return in each year
   pre.wr.nq.cum <- cumprod(pre.wr.nq[preYears : 1, ])[preYears : 1, ]
   pre.wr.q.cum <- cumprod(pre.wr.q[preYears : 1, ])[preYears : 1, ]
@@ -70,11 +70,8 @@ MaxERIN_05 <- function() {
   preEndVal.salary.q <- apply(pre.salary.q * pre.wr.q.cum, 2, sum)
   
   # Get NQ and Q initial balance
-  # q.init <- BasicInputs$Qualified.Initial.Portfolios  
-  # nq.init <- BasicInputs$Initial.Portfolios - q.init
-  
-  q.init <- BasicInputs$Qual
   nq.init <- BasicInputs$NQ
+  q.init <- BasicInputs$Qual
   
   # Total accumulated value in NQ / Q at retirement
   preEndVal.nq <- nq.init * pre.wr.nq.cum[1, ] + preEndVal.salary.nq
