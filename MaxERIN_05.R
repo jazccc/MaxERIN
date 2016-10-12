@@ -6,25 +6,36 @@ MaxERIN_05 <- function() {
   
   AFER                      <-          BasicInputs$AFER
   
-  adj.Asset1                <-          Asset1 - AFER
+  assetList <- list(adj.Asset1 = Asset1 - AFER,
+                    adj.Asset2 = Asset2 - AFER,
+                    adj.Asset3 = Asset3 - AFER,
+                    adj.Asset4 = Asset4 - AFER,
+                    adj.Asset5 = Asset5 - AFER,
+                    adj.Asset6 = Asset6 - AFER,
+                    adj.Asset7 = Asset7 - AFER,
+                    adj.Asset8 = Asset8 - AFER,
+                    adj.Asset9 = Asset9 - AFER,
+                    adj.Asset10= Asset10 - AFER)
   
-  adj.Asset2                <-          Asset2 - AFER
+  #  ++++ Prepare weighted returns ++++++++++++++++++++++++++++++++++++++++++++++++++
+  assets.nq <- which(colSums(Allocations.nq != 0) >0) # which assets are used in NQ?
+  assets.q <- which(colSums(Allocations.q != 0) >0)   # which assets are used in Q?
   
-  adj.Asset3                <-          Asset3 - AFER
+  wr.temp <- matrix(0, nrow = 2000, ncol = 100) # templete for wr
+  # sum w_i * r_i for NQ
+  for (index in assets.nq) {
+    wr.temp <- wr.temp + t(assetList[[index]] + 1) %*% diag(Allocations.nq[,index])
+  }
   
-  adj.Asset4                <-          Asset4 - AFER
+  wr.all.nq <- as.data.frame(t(wr.temp))
   
-  adj.Asset5                <-          Asset5 - AFER
+  wr.temp <- wr.temp * 0  # Reset templete
+  # sum w_i * r_i for Q
+  for (index in assets.q) {
+    wr.temp <- wr.temp + t(assetList[[index]] + 1) %*% diag(Allocations.q[,index])
+  }
+  wr.all.q <- as.data.frame(t(wr.temp))
   
-  adj.Asset6                <-          Asset6 - AFER
-  
-  adj.Asset7                <-          Asset7 - AFER
-  
-  adj.Asset8                <-          Asset8 - AFER
-  
-  adj.Asset9                <-          Asset9 - AFER
-  
-  adj.Asset10               <-          Asset10 - AFER
   
   # ++++ Pre-retirement Modeling ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  
@@ -32,31 +43,7 @@ MaxERIN_05 <- function() {
   pre.salary.q <- pre.salary$Split.to.Q[pre.salary$Split.to.Q>0]    # pre salary contribute to Q
   
   preYears <- length(pre.salary.nq) # Num of years in Pre-stage
-  
-  # Weighted return for NQ
-  wr.all.nq <- t(t(adj.Asset1) %*% diag(Allocations.nq[,1]) + 
-                   t(adj.Asset2) %*% diag(Allocations.nq[,2]) +
-                   t(adj.Asset3) %*% diag(Allocations.nq[,3]) + 
-                   t(adj.Asset4) %*% diag(Allocations.nq[,4]) +
-                   t(adj.Asset5) %*% diag(Allocations.nq[,5]) + 
-                   t(adj.Asset6) %*% diag(Allocations.nq[,6]) +
-                   t(adj.Asset7) %*% diag(Allocations.nq[,7]) + 
-                   t(adj.Asset8) %*% diag(Allocations.nq[,8]) +
-                   t(adj.Asset9) %*% diag(Allocations.nq[,9]) + 
-                   t(adj.Asset10) %*% diag(Allocations.nq[,10])) + 1
-  wr.all.nq <- as.data.frame(wr.all.nq)
-  # Weighted return for Q
-  wr.all.q <- t((1 + t(adj.Asset1)) %*% diag(Allocations.q[,1]) + 
-                  (1 + t(adj.Asset2)) %*% diag(Allocations.q[,2]) +
-                  (1 + t(adj.Asset3)) %*% diag(Allocations.q[,3]) + 
-                  (1 + t(adj.Asset4)) %*% diag(Allocations.q[,4]) +
-                  (1 + t(adj.Asset5)) %*% diag(Allocations.q[,5]) + 
-                  (1 + t(adj.Asset6)) %*% diag(Allocations.q[,6]) +
-                  (1 + t(adj.Asset7)) %*% diag(Allocations.q[,7]) + 
-                  (1 + t(adj.Asset8)) %*% diag(Allocations.q[,8]) +
-                  (1 + t(adj.Asset9)) %*% diag(Allocations.q[,9]) + 
-                  (1 +t(adj.Asset10)) %*% diag(Allocations.q[,10]))
-  wr.all.q <- as.data.frame(wr.all.q)
+
   # Truncate weighted return for pre-stage
   pre.wr.nq <- (wr.all.nq[1:preYears, ] - 1) * (preYears > 0) + 1
   pre.wr.q <- (wr.all.q[1:preYears, ] - 1) * (preYears > 0) + 1
@@ -84,7 +71,7 @@ MaxERIN_05 <- function() {
   # ++++ Post-retirement Modeling +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   # truncate the wr matrix by preYears in order to get the adjusted wr matrix for the post-retirement modeling
   
-  wr                        <-          wr.all.nq[(preYears + 1) : nrow(adj.Asset1), ]
+  wr                        <-          wr.all.nq[(preYears + 1) : nrow(wr.all.nq), ]
   
   # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   
