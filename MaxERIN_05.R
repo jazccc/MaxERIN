@@ -4,7 +4,7 @@ MaxERIN_05 <- function() {
   
   # ++++ Calculate the adjusted expected return matrices (after AFER) +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   
-  AFER                      <-          BasicInputs$AFER
+  AFER                      <-          TaxFactor$VAFER
   
   assetList <- list(adj.Asset1 = Asset1 - AFER,
                     adj.Asset2 = Asset2 - AFER,
@@ -16,6 +16,7 @@ MaxERIN_05 <- function() {
                     adj.Asset8 = Asset8 - AFER,
                     adj.Asset9 = Asset9 - AFER,
                     adj.Asset10= Asset10 - AFER)
+
   
   #  ++++ Prepare weighted returns ++++++++++++++++++++++++++++++++++++++++++++++++++
   assets.nq <- which(colSums(Allocations.nq != 0) >0) # which assets are used in NQ?
@@ -26,7 +27,6 @@ MaxERIN_05 <- function() {
   for (index in assets.nq) {
     wr.temp <- wr.temp + t(assetList[[index]] + 1) %*% diag(Allocations.nq[,index])
   }
-  
   wr.all.nq <- as.data.frame(t(wr.temp))
   
   wr.temp <- wr.temp * 0  # Reset templete
@@ -34,16 +34,12 @@ MaxERIN_05 <- function() {
   for (index in assets.q) {
     wr.temp <- wr.temp + t(assetList[[index]] + 1) %*% diag(Allocations.q[,index])
   }
-  wr.all.q <- as.data.frame(t(wr.temp))
-  
-  
+  wr.all.q <- as.data.frame(t(wr.temp))  
   # ++++ Pre-retirement Modeling ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- 
-  pre.salary.nq <- pre.salary$Split.to.NQ[pre.salary$Split.to.NQ>0] # pre salary contribute to NQ
-  pre.salary.q <- pre.salary$Split.to.Q[pre.salary$Split.to.Q>0]    # pre salary contribute to Q
+  preYears <- BasicInputs$Retirement.Age - BasicInputs$Current.Age # Num of years in Pre-stage
+  pre.salary.nq <- pre.salary$Split.to.NQ[1 : preYears] # pre salary contribute to NQ
+  pre.salary.q <- pre.salary$Split.to.Q[1 : preYears]    # pre salary contribute to Q
   
-  preYears <- length(pre.salary.nq) # Num of years in Pre-stage
-
   # Truncate weighted return for pre-stage
   pre.wr.nq <- (wr.all.nq[1:preYears, ] - 1) * (preYears > 0) + 1
   pre.wr.q <- (wr.all.q[1:preYears, ] - 1) * (preYears > 0) + 1
@@ -129,11 +125,19 @@ MaxERIN_05 <- function() {
   
   # compare ERIN.Vec and ERIN.Vec.IC(s), choose the minimum to be the final solustion of ERIN (expected retirement living needs)
   
-  d0                        <-          quantile(apply(ERIN.Collection, 1, min), BasicInputs$Ruin.Target)
+  #d0                        <-          unname(quantile(apply(ERIN.Collection, 1, min), BasicInputs$Ruin.Target))
+  probs                     <-          c(BasicInputs$Ruin.Target,0.05, 0.25, 0.5)
+  multi                     <-          unname(quantile(apply(ERIN.Collection, 1, min), probs))
+  
+  Retirement.Year               <-          BasicInputs$Retirement.Age - BasicInputs$Current.Age
+  Infl.Adj                      <-          InflationTaper$InflAdj[Retirement.Year + 1]
+  #Infl.Adj.d0                   <-          d0 / Infl.Adj
+  Infl.Adj.multi                <-          multi / Infl.Adj
   
   # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   
-  result                    <-          list(Customized.Maximum.Expected.Retirement.Income.Need     =     d0)
+  result                    <-          Infl.Adj.multi + SocSec$Soc.Sec..After.Tax.[1] +
+                                            Pension$Pension..After.Tax.[1] + AnnuitiesAfterTax$Annuities..After.Tax.[1]
   
   return(result)
   
